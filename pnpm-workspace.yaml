@@ -2,5 +2,13 @@ packages:
   - "apps/*"
   - "packages/*"
 
+allowBuilds:
+  unrs-resolver: set this to true or false
+
+minimumReleaseAgeExclude:
+  - '@anthropic-ai/sdk@0.112.0'
+
 onlyBuiltDependencies:
   - sharp
+  - esbuild
+  - unrs-resolver
