@@ -6,7 +6,7 @@ import { parseQuickAddAction } from "../lib/actions";
 import { useToast } from "./toast";
 import type { FormPrefill } from "./TransactionForm";
 
-const EXAMPLES = ["coffee 4.50", "salary 3200", "uber 18 yesterday"];
+const EXAMPLES = ["chai 20", "salary 85000", "auto 120 yesterday"];
 
 export function QuickAdd({ onParsed }: { onParsed: (prefill: FormPrefill) => void }) {
   const toast = useToast();
@@ -51,7 +51,7 @@ export function QuickAdd({ onParsed }: { onParsed: (prefill: FormPrefill) => voi
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={pending}
-          placeholder="Type it naturally… “lunch 14.20 yesterday”"
+          placeholder="Type it naturally… “groceries 1450 yesterday”"
           className="input pr-11"
           aria-label="Natural-language transaction"
         />

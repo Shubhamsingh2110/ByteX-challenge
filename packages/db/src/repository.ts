@@ -1,7 +1,7 @@
 import type { FilterQuery } from "mongoose";
 import type { CategoryId, CreateTransactionInput, Transaction, TransactionType } from "@repo/core";
-import { connectToDatabase } from "./connection";
-import { TransactionModel, toDomain, type TransactionDoc } from "./models";
+import { getConnection } from "./connection";
+import { getTransactionModel, toDomain, type TransactionDoc } from "./models";
 
 export interface ListFilter {
   type?: TransactionType;
@@ -9,6 +9,11 @@ export interface ListFilter {
   from?: Date;
   to?: Date;
   limit?: number;
+}
+
+async function model() {
+  const conn = await getConnection();
+  return getTransactionModel(conn);
 }
 
 /**
@@ -20,17 +25,15 @@ export interface ListFilter {
 export async function createTransaction(
   input: CreateTransactionInput,
 ): Promise<Transaction> {
-  await connectToDatabase();
+  const Transaction = await model();
 
   if (input.idempotencyKey) {
-    const existing = await TransactionModel.findOne({
-      idempotencyKey: input.idempotencyKey,
-    });
+    const existing = await Transaction.findOne({ idempotencyKey: input.idempotencyKey });
     if (existing) return toDomain(existing);
   }
 
   try {
-    const doc = await TransactionModel.create({
+    const doc = await Transaction.create({
       type: input.type,
       amountCents: input.amount, // already normalized to integer cents by Zod
       categoryId: input.categoryId,
@@ -40,11 +43,8 @@ export async function createTransaction(
     });
     return toDomain(doc);
   } catch (err) {
-    // Duplicate key (E11000) means a concurrent submit won the race; return it.
     if (isDuplicateKeyError(err) && input.idempotencyKey) {
-      const winner = await TransactionModel.findOne({
-        idempotencyKey: input.idempotencyKey,
-      });
+      const winner = await Transaction.findOne({ idempotencyKey: input.idempotencyKey });
       if (winner) return toDomain(winner);
     }
     throw err;
@@ -52,7 +52,7 @@ export async function createTransaction(
 }
 
 export async function listTransactions(filter: ListFilter = {}): Promise<Transaction[]> {
-  await connectToDatabase();
+  const Transaction = await model();
 
   const query: FilterQuery<TransactionDoc> = {};
   if (filter.type) query.type = filter.type;
@@ -63,7 +63,7 @@ export async function listTransactions(filter: ListFilter = {}): Promise<Transac
     if (filter.to) query.occurredAt.$lte = filter.to;
   }
 
-  const docs = await TransactionModel.find(query)
+  const docs = await Transaction.find(query)
     .sort({ occurredAt: -1, createdAt: -1 })
     .limit(filter.limit ?? 500);
 
@@ -71,9 +71,9 @@ export async function listTransactions(filter: ListFilter = {}): Promise<Transac
 }
 
 export async function deleteTransaction(id: string): Promise<boolean> {
-  await connectToDatabase();
   if (!isValidObjectId(id)) return false;
-  const res = await TransactionModel.deleteOne({ _id: id });
+  const Transaction = await model();
+  const res = await Transaction.deleteOne({ _id: id });
   return res.deletedCount === 1;
 }
 
@@ -81,10 +81,10 @@ export async function updateTransaction(
   id: string,
   input: CreateTransactionInput,
 ): Promise<Transaction | null> {
-  await connectToDatabase();
   if (!isValidObjectId(id)) return null;
+  const Transaction = await model();
 
-  const doc = await TransactionModel.findByIdAndUpdate(
+  const doc = await Transaction.findByIdAndUpdate(
     id,
     {
       type: input.type,

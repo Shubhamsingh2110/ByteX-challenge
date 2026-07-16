@@ -1,4 +1,4 @@
-import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
+import { Schema, type Connection, type InferSchemaType, type Model } from "mongoose";
 import { CATEGORY_IDS, type Transaction } from "@repo/core";
 
 const transactionSchema = new Schema(
@@ -23,24 +23,27 @@ const transactionSchema = new Schema(
   { timestamps: true },
 );
 
-// Sparse + unique: only documents that HAVE a key are constrained, so many
-// docs without a key coexist while retries with the same key can't duplicate.
-transactionSchema.index(
-  { idempotencyKey: 1 },
-  { unique: true, sparse: true },
-);
-// Common query path: newest transactions first.
+// Sparse + unique: only documents that HAVE a key are constrained.
+transactionSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 transactionSchema.index({ occurredAt: -1 });
 
 export type TransactionDoc = InferSchemaType<typeof transactionSchema>;
+export type HydratedTransaction = ReturnType<Model<TransactionDoc>["hydrate"]>;
 
-// Guard against Next.js hot-reload re-registering the model (OverwriteModelError).
-export const TransactionModel: Model<TransactionDoc> =
-  (mongoose.models.Transaction as Model<TransactionDoc>) ??
-  mongoose.model<TransactionDoc>("Transaction", transactionSchema);
+/**
+ * Return the Transaction model bound to a SPECIFIC connection. Binding to the
+ * connection we actually awaited (rather than mongoose's global default) is what
+ * prevents the "buffering timed out" failure under Next's bundler.
+ */
+export function getTransactionModel(conn: Connection): Model<TransactionDoc> {
+  return (
+    (conn.models.Transaction as Model<TransactionDoc>) ??
+    conn.model<TransactionDoc>("Transaction", transactionSchema)
+  );
+}
 
 /** Map a Mongoose document to the framework-free domain shape used everywhere. */
-export function toDomain(doc: mongoose.HydratedDocument<TransactionDoc>): Transaction {
+export function toDomain(doc: HydratedTransaction): Transaction {
   return {
     id: doc._id.toString(),
     type: doc.type as Transaction["type"],

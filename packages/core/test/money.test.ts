@@ -59,10 +59,12 @@ describe("toCents", () => {
 });
 
 describe("formatMoney / formatAmount", () => {
-  it("formats cents as localized currency", () => {
-    expect(formatMoney(123456)).toBe("$1,234.56");
-    expect(formatMoney(-550)).toBe("-$5.50");
-    expect(formatMoney(0)).toBe("$0.00");
+  it("formats cents as localized INR currency", () => {
+    expect(formatMoney(123456)).toBe("₹1,234.56");
+    expect(formatMoney(-550)).toBe("-₹5.50");
+    expect(formatMoney(0)).toBe("₹0.00");
+    // Indian digit grouping (lakh) for larger amounts
+    expect(formatMoney(1234567890)).toBe("₹1,23,45,678.90");
   });
 
   it("formats amount without a symbol", () => {

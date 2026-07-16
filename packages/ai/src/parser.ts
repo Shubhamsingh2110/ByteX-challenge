@@ -96,7 +96,7 @@ ${categoryLines}
 
 Rules:
 - Infer income vs expense from context (salary/refund/paycheck = income; most spending = expense).
-- amount is a positive number in dollars (e.g. 4.50), never negative, never with a currency symbol.
+- amount is a positive number in Indian Rupees (e.g. 250 or 49.90), never negative, never with a currency symbol.
 - If the note is not a transaction (a greeting, a question, gibberish), set understood=false and confidence=0.
 - Set a realistic confidence between 0 and 1.`;
 }

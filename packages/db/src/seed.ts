@@ -7,15 +7,14 @@
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
 import { toCents, type CategoryId, type TransactionType } from "@repo/core";
 
 // Load secrets from the repo-root .env regardless of where the script runs.
 const here = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(here, "../../../.env") });
 
-const { connectToDatabase } = await import("./connection");
-const { TransactionModel } = await import("./models");
+const { getConnection } = await import("./connection");
+const { getTransactionModel } = await import("./models");
 
 interface SeedRow {
   type: TransactionType;
@@ -26,37 +25,38 @@ interface SeedRow {
 }
 
 const ROWS: SeedRow[] = [
-  { type: "income", amount: "5200.00", categoryId: "salary", description: "Monthly salary", daysAgo: 28 },
-  { type: "income", amount: "850.00", categoryId: "freelance", description: "Logo design gig", daysAgo: 20 },
-  { type: "income", amount: "120.50", categoryId: "investment", description: "Dividend payout", daysAgo: 12 },
+  { type: "income", amount: "85000", categoryId: "salary", description: "Monthly salary", daysAgo: 28 },
+  { type: "income", amount: "14500", categoryId: "freelance", description: "Logo design gig", daysAgo: 20 },
+  { type: "income", amount: "2150.50", categoryId: "investment", description: "Dividend payout", daysAgo: 12 },
 
-  { type: "expense", amount: "1450.00", categoryId: "housing", description: "Rent", daysAgo: 27 },
-  { type: "expense", amount: "89.99", categoryId: "utilities", description: "Electricity", daysAgo: 25 },
-  { type: "expense", amount: "60.00", categoryId: "utilities", description: "Internet", daysAgo: 25 },
+  { type: "expense", amount: "22000", categoryId: "housing", description: "Rent", daysAgo: 27 },
+  { type: "expense", amount: "1899", categoryId: "utilities", description: "Electricity", daysAgo: 25 },
+  { type: "expense", amount: "799", categoryId: "utilities", description: "Broadband", daysAgo: 25 },
 
-  // Groceries: a stable baseline plus one clear anomaly (the "3x" story).
-  { type: "expense", amount: "52.30", categoryId: "groceries", description: "Weekly shop", daysAgo: 24 },
-  { type: "expense", amount: "48.75", categoryId: "groceries", description: "Weekly shop", daysAgo: 17 },
-  { type: "expense", amount: "55.10", categoryId: "groceries", description: "Weekly shop", daysAgo: 10 },
-  { type: "expense", amount: "51.40", categoryId: "groceries", description: "Weekly shop", daysAgo: 3 },
-  { type: "expense", amount: "212.80", categoryId: "groceries", description: "Costco bulk run", daysAgo: 8 },
+  // Groceries: a stable baseline plus one clear anomaly (the "N× your usual" story).
+  { type: "expense", amount: "1240", categoryId: "groceries", description: "Weekly shop", daysAgo: 24 },
+  { type: "expense", amount: "1185", categoryId: "groceries", description: "Weekly shop", daysAgo: 17 },
+  { type: "expense", amount: "1320", categoryId: "groceries", description: "Weekly shop", daysAgo: 10 },
+  { type: "expense", amount: "1105", categoryId: "groceries", description: "Weekly shop", daysAgo: 3 },
+  { type: "expense", amount: "5480", categoryId: "groceries", description: "Big monthly stock-up", daysAgo: 8 },
 
-  { type: "expense", amount: "18.50", categoryId: "dining", description: "Lunch", daysAgo: 22 },
-  { type: "expense", amount: "42.00", categoryId: "dining", description: "Dinner w/ friends", daysAgo: 15 },
-  { type: "expense", amount: "9.75", categoryId: "dining", description: "Coffee & pastry", daysAgo: 6 },
+  { type: "expense", amount: "320", categoryId: "dining", description: "Lunch", daysAgo: 22 },
+  { type: "expense", amount: "1850", categoryId: "dining", description: "Dinner with friends", daysAgo: 15 },
+  { type: "expense", amount: "180", categoryId: "dining", description: "Chai & snacks", daysAgo: 6 },
 
-  { type: "expense", amount: "35.00", categoryId: "transport", description: "Gas", daysAgo: 19 },
-  { type: "expense", amount: "2.75", categoryId: "transport", description: "Metro fare", daysAgo: 5 },
+  { type: "expense", amount: "2400", categoryId: "transport", description: "Petrol", daysAgo: 19 },
+  { type: "expense", amount: "120", categoryId: "transport", description: "Auto fare", daysAgo: 5 },
 
-  { type: "expense", amount: "15.99", categoryId: "subscriptions", description: "Streaming", daysAgo: 14 },
-  { type: "expense", amount: "11.99", categoryId: "subscriptions", description: "Music", daysAgo: 14 },
-  { type: "expense", amount: "120.00", categoryId: "health", description: "Dentist copay", daysAgo: 9 },
-  { type: "expense", amount: "64.20", categoryId: "shopping", description: "New running shoes", daysAgo: 4 },
-  { type: "expense", amount: "27.99", categoryId: "entertainment", description: "Concert tickets", daysAgo: 2 },
+  { type: "expense", amount: "649", categoryId: "subscriptions", description: "Streaming", daysAgo: 14 },
+  { type: "expense", amount: "119", categoryId: "subscriptions", description: "Music", daysAgo: 14 },
+  { type: "expense", amount: "1500", categoryId: "health", description: "Dentist visit", daysAgo: 9 },
+  { type: "expense", amount: "3299", categoryId: "shopping", description: "New running shoes", daysAgo: 4 },
+  { type: "expense", amount: "1200", categoryId: "entertainment", description: "Concert tickets", daysAgo: 2 },
 ];
 
 async function main() {
-  await connectToDatabase();
+  const conn = await getConnection();
+  const TransactionModel = getTransactionModel(conn);
   console.log("Connected to MongoDB Atlas ✓");
 
   const deleted = await TransactionModel.deleteMany({});
@@ -74,7 +74,7 @@ async function main() {
   const inserted = await TransactionModel.insertMany(docs);
   console.log(`Inserted ${inserted.length} demo transactions ✓`);
 
-  await mongoose.disconnect();
+  await conn.close();
   console.log("Done.");
 }
 

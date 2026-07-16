@@ -26,7 +26,7 @@ export function toCents(input: string | number): number {
   const raw = typeof input === "number" ? numberToDecimalString(input) : input;
 
   // Strip currency symbols, thousands separators, and surrounding whitespace.
-  const cleaned = raw.trim().replace(/[$£€,\s]/g, "");
+  const cleaned = raw.trim().replace(/[$£€₹,\s]/g, "");
 
   if (cleaned === "" || cleaned === "-" || cleaned === "+") {
     throw new MoneyParseError(`Not a valid amount: "${input}"`);
@@ -80,8 +80,8 @@ function numberToDecimalString(n: number): string {
   return n.toFixed(2);
 }
 
-/** Format integer cents as a localized currency string, e.g. 123456 → "$1,234.56". */
-export function formatMoney(cents: number, currency = "USD", locale = "en-US"): string {
+/** Format integer cents (paise) as a localized currency string, e.g. 123456 → "₹1,234.56". */
+export function formatMoney(cents: number, currency = "INR", locale = "en-IN"): string {
   const formatter = new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
@@ -91,7 +91,7 @@ export function formatMoney(cents: number, currency = "USD", locale = "en-US"): 
 }
 
 /** Format cents without the currency symbol, e.g. 123456 → "1,234.56". */
-export function formatAmount(cents: number, locale = "en-US"): string {
+export function formatAmount(cents: number, locale = "en-IN"): string {
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
