@@ -5,7 +5,7 @@ packages:
 minimumReleaseAgeExclude:
   - '@anthropic-ai/sdk@0.112.0'
 
-onlyBuiltDependencies:
-  - sharp
-  - esbuild
-  - unrs-resolver
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
